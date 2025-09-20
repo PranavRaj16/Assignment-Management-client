@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
 
@@ -81,7 +81,7 @@ const StudentDashboard = () => {
               <span className="text-gray-700">Welcome, {user?.name}</span>
               <button
                 onClick={logout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-none text-sm font-medium"
               >
                 Logout
               </button>
@@ -180,7 +180,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
   );
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white rounded-none shadow-sm border border-gray-200">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
@@ -193,7 +193,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
           </div>
 
           {hasSubmitted && (
-            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-none">
               Submitted
             </span>
           )}
@@ -222,7 +222,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
           <button
             onClick={() => setShowForm(true)}
             disabled={daysUntilDue < 0}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-none text-sm font-medium"
           >
             {daysUntilDue < 0 ? "Assignment Overdue" : "Submit Answer"}
           </button>
@@ -244,7 +244,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="Type your answer here..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md h-32 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-none h-32 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
               />
             </div>
@@ -253,7 +253,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
               <button
                 type="submit"
                 disabled={submitting || !answer.trim()}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-none text-sm font-medium"
               >
                 {submitting ? "Submitting..." : "Submit Answer"}
               </button>
@@ -264,7 +264,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
                   setAnswer("");
                   setError("");
                 }}
-                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-none text-sm font-medium"
               >
                 Cancel
               </button>
@@ -273,7 +273,7 @@ const AssignmentCard = ({ assignment, onSubmit, hasSubmitted, submission }) => {
         )}
 
         {hasSubmitted && submission && (
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-none">
             <div className="flex justify-between items-start mb-2">
               <h4 className="text-sm font-semibold text-green-800">
                 Your Submission

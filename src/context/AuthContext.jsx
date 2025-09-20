@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import api from "../utils/api";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Validate token on app start
     if (token && user) {
       validateToken();
     } else {
@@ -29,7 +28,6 @@ export const AuthProvider = ({ children }) => {
 
   const validateToken = async () => {
     try {
-      // You could add a /auth/verify endpoint to validate token
       setLoading(false);
     } catch (error) {
       console.error("Token validation failed:", error);

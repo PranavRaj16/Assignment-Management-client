@@ -1,106 +1,127 @@
-import React, { useState, useEffect } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../utils/api";
+import { useAssignments } from "../../hooks/useAssignments";
+import { useSubmissions } from "../../hooks/useSubmissions";
+import AssignmentForm from "./AssignmentForm";
+import AssignmentCard from "./AssignmentCard";
+import AssignmentFilters from "./AssignmentFilters";
+import AssignmentSubmissions from "./AssignmentSubmissions";
+import { ErrorAlert, SuccessAlert } from "../common/Alert";
+import ConfirmModal from "../common/ConfirmModal";
+import { status, modalConfig } from "../../constants/status";
 
-const TeacherDashboard = () => {
-  const [assignments, setAssignments] = useState([]);
+export default function TeacherDashboard() {
+  const { user, logout } = useAuth();
+  const {
+    items,
+    loading,
+    error,
+    success,
+    createAssignment,
+    updateAssignment,
+    deleteAssignment,
+    updateStatus,
+    clearMessages,
+  } = useAssignments();
+
+  const [modalType, setModalType] = useState(status.Deleted);
   const [filter, setFilter] = useState("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const { user, logout } = useAuth();
+  const [editingId, setEditingId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [target, setTarget] = useState(null);
 
-  const [newAssignment, setNewAssignment] = useState({
-    title: "",
-    description: "",
-    dueDate: "",
-  });
+  const [openSubmissionsId, setOpenSubmissionsId] = useState(null);
+  const submissions = useSubmissions(
+    openSubmissionsId,
+    Boolean(openSubmissionsId)
+  );
 
-  useEffect(() => {
-    fetchAssignments();
+  const filtered = useMemo(() => {
+    if (filter === "all") return items;
+    return items.filter((a) => a.status === filter);
+  }, [items, filter]);
+
+  const openConfirmModal = useCallback((id, type) => {
+    setTarget(id);
+    setShowModal(true);
+    setModalType(type);
   }, []);
 
-  const fetchAssignments = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/assignments");
-      setAssignments(response.data);
-      setError("");
-    } catch (error) {
-      console.error("Error fetching assignments:", error);
-      setError("Failed to fetch assignments");
-    } finally {
-      setLoading(false);
+  const handleStatusChange = useCallback(
+    async (id, status) => {
+      await updateStatus(id, status);
+      setTimeout(() => clearMessages(), 3000);
+    },
+    [updateStatus, clearMessages]
+  );
+
+  const confirmModal = useCallback(async () => {
+    if (target) {
+      if (modalType === status.Published) {
+        await handleStatusChange(target, "Published");
+      } else if (modalType === status.Completed) {
+        await handleStatusChange(target, "Completed");
+      } else if (modalType === status.Deleted) {
+        await deleteAssignment(target);
+      }
     }
-  };
+    setShowModal(false);
+    setTarget(null);
+  }, [target, deleteAssignment, handleStatusChange, modalType]);
 
-  const handleInputChange = (e) => {
-    setNewAssignment({
-      ...newAssignment,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const createAssignment = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await api.post("/assignments", newAssignment);
-      setAssignments([response.data, ...assignments]);
-      setNewAssignment({ title: "", description: "", dueDate: "" });
+  const handleCreate = useCallback(
+    async (payload) => {
+      await createAssignment(payload);
       setShowCreateForm(false);
-      setError("");
-    } catch (error) {
-      console.error("Error creating assignment:", error);
-      setError("Failed to create assignment");
-    }
-  };
+      setTimeout(() => clearMessages(), 3000);
+    },
+    [createAssignment, clearMessages]
+  );
 
-  const updateStatus = async (id, newStatus) => {
-    try {
-      const response = await api.put(`/assignments/${id}/status`, {
-        status: newStatus,
-      });
+  const handleEditSave = useCallback(
+    async (id, payload) => {
+      await updateAssignment(id, payload);
+      setEditingId(null);
+      setTimeout(() => clearMessages(), 3000);
+    },
+    [updateAssignment, clearMessages]
+  );
 
-      setAssignments(
-        assignments.map((assignment) =>
-          assignment._id === id ? response.data : assignment
-        )
-      );
-      setError("");
-    } catch (error) {
-      console.error("Error updating status:", error);
-      setError("Failed to update assignment status");
-    }
-  };
-
-  const filteredAssignments = assignments.filter((assignment) => {
-    if (filter === "all") return true;
-    return assignment.status === filter;
-  });
+  const handleViewSubmissions = useCallback((assignmentId) => {
+    setOpenSubmissionsId((prev) =>
+      prev === assignmentId ? null : assignmentId
+    );
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <div
+          className="relative h-12 w-12 rounded-full border-2 border-zinc-300 border-t-indigo-600 animate-spin"
+          role="status"
+          aria-live="polite"
+        />
+        <span className="sr-only">Loading</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+    <div className="min-h-screen bg-zinc-50">
+      <nav className="bg-white border-b border-zinc-200">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">
                 Teacher Dashboard
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.name}</span>
+            <div className="flex items-center gap-4">
+              <span className="text-zinc-700">Welcome, {user?.name}</span>
               <button
                 onClick={logout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                className="inline-flex items-center justify-center rounded-none bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
               >
                 Logout
               </button>
@@ -109,188 +130,107 @@ const TeacherDashboard = () => {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {error && (
-          <div className="mb-4 bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
+      <div className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+        <ErrorAlert message={error} onDismiss={clearMessages} />
+        <SuccessAlert message={success} onDismiss={clearMessages} />
 
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-          <div className="flex flex-wrap gap-2">
-            {["all", "Draft", "Published", "Completed"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  filter === status
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {status === "all" ? "All" : status}
-                {status !== "all" && (
-                  <span className="ml-2 bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                    {assignments.filter((a) => a.status === status).length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <AssignmentFilters
+            items={items}
+            value={filter}
+            onChange={setFilter}
+          />
           <button
-            onClick={() => setShowCreateForm(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            onClick={() => {
+              setShowCreateForm(true);
+              setEditingId(null);
+            }}
+            className="inline-flex items-center justify-center rounded-none bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
           >
             Create Assignment
           </button>
         </div>
 
-        {/* Create Assignment Form */}
         {showCreateForm && (
-          <div className="bg-white p-6 rounded-lg shadow mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="rounded-none border border-zinc-200 bg-white p-6 shadow-sm mb-6">
+            <h3 className="mb-4 text-lg font-semibold text-zinc-900">
               Create New Assignment
             </h3>
-            <form onSubmit={createAssignment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  placeholder="Assignment Title"
-                  value={newAssignment.title}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  placeholder="Assignment Description"
-                  value={newAssignment.description}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md h-24 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Due Date
-                </label>
-                <input
-                  type="date"
-                  name="dueDate"
-                  value={newAssignment.dueDate}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Create Assignment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            <AssignmentForm
+              onSubmit={handleCreate}
+              onCancel={() => setShowCreateForm(false)}
+              submitLabel="Create Assignment"
+            />
           </div>
         )}
 
-        {/* Assignments List */}
         <div className="space-y-4">
-          {filteredAssignments.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-zinc-500">
                 No assignments found for the selected filter.
               </p>
             </div>
           ) : (
-            filteredAssignments.map((assignment) => (
-              <div
-                key={assignment._id}
-                className="bg-white p-6 rounded-lg shadow"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {assignment.title}
-                    </h3>
-                    <p className="text-gray-600 mt-2">
-                      {assignment.description}
-                    </p>
-                    <div className="mt-3 flex items-center space-x-4 text-sm text-gray-500">
-                      <span>
-                        Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                      </span>
-                      <span>
-                        Created:{" "}
-                        {new Date(assignment.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        assignment.status === "Draft"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : assignment.status === "Published"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {assignment.status}
-                    </span>
-
-                    {assignment.status === "Draft" && (
-                      <button
-                        onClick={() =>
-                          updateStatus(assignment._id, "Published")
-                        }
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm font-medium"
-                      >
-                        Publish
-                      </button>
-                    )}
-
-                    {assignment.status === "Published" && (
-                      <button
-                        onClick={() =>
-                          updateStatus(assignment._id, "Completed")
-                        }
-                        className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md text-sm font-medium"
-                      >
-                        Complete
-                      </button>
-                    )}
-                  </div>
+            filtered.map((assignment) =>
+              editingId === assignment._id ? (
+                <div
+                  key={assignment._id}
+                  className="rounded-none border border-zinc-200 bg-white p-6 shadow-sm"
+                >
+                  <h3 className="mb-4 text-lg font-semibold text-zinc-900">
+                    Edit Assignment
+                  </h3>
+                  <AssignmentForm
+                    initialValues={{
+                      title: assignment.title,
+                      description: assignment.description,
+                      dueDate: assignment.dueDate,
+                    }}
+                    onSubmit={(vals) =>
+                      handleEditSave(assignment._id, { ...assignment, ...vals })
+                    }
+                    onCancel={() => setEditingId(null)}
+                    submitLabel="Update Assignment"
+                  />
                 </div>
-              </div>
-            ))
+              ) : (
+                <div key={assignment._id} className="space-y-3">
+                  <AssignmentCard
+                    assignment={assignment}
+                    onEdit={() => {
+                      setShowCreateForm(false);
+                      setEditingId(assignment._id);
+                    }}
+                    onDelete={(id) => openConfirmModal(id, status.Deleted)}
+                    onPublish={(id) => openConfirmModal(id, status.Published)}
+                    onComplete={(id) => openConfirmModal(id, status.Completed)}
+                    onViewSubmissions={handleViewSubmissions}
+                  />
+
+                  {assignment._id === openSubmissionsId &&
+                    assignment.status === "Published" && (
+                      <AssignmentSubmissions
+                        items={submissions.items}
+                        loading={submissions.loading}
+                        error={submissions.error}
+                        onReload={submissions.load}
+                        onToggleReviewed={submissions.toggleReviewed}
+                      />
+                    )}
+                </div>
+              )
+            )
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmModal}
+        modalConfig={modalConfig[modalType] || { heading: "", type: "" }}
+      />
     </div>
   );
-};
-
-export default TeacherDashboard;
+}

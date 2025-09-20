@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
 export const useLocalStorage = (key, initialValue) => {
-  // Get value from localStorage or use initialValue
   const [storedValue, setStoredValue] = useState(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -12,10 +11,8 @@ export const useLocalStorage = (key, initialValue) => {
     }
   });
 
-  // Return a wrapped version of useState's setter function that persists the new value to localStorage
   const setValue = (value) => {
     try {
-      // Allow value to be a function so we have the same API as useState
       const valueToStore =
         value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
@@ -25,7 +22,6 @@ export const useLocalStorage = (key, initialValue) => {
     }
   };
 
-  // Remove value from localStorage
   const removeValue = () => {
     try {
       window.localStorage.removeItem(key);
