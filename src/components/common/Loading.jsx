@@ -1,5 +1,3 @@
-import React from "react";
-
 const Loading = ({ size = "large", message = "Loading..." }) => {
   const sizeClasses = {
     small: "h-4 w-4",
